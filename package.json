@@ -1,0 +1,21 @@
+{
+  "name": "kis-1.0",
+  "version": "1.0.0",
+  "description": "KIS client",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "packager": "electron-packager . kis --out=../build_out --ignore=\".idea|.vscode\"  --platform=win32 --arch=ia32 --icon=images/kis_256px.ico --app-version=1.0.0 --electron-version=4.1.4 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/ && node build.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^4.1.4",
+    "electron-packager": "^13.1.1",
+    "electron-winstaller": "^2.7.0"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0"
+  }
+}
