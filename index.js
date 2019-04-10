@@ -3,33 +3,43 @@ const fs = require('fs');
 
 // 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
 // 垃圾回收的时候，window对象将会自动的关闭
-let win
-if(require('electron-squirrel-startup')) return;
+let mainWindow
+if (require('electron-squirrel-startup')) return;
 
-function createWindow () {
+// 关键代码在这里
+const shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
+})
+if (shouldQuit) {
+  app.quit()
+}
+
+function createWindow() {
   // 创建浏览器窗口。
-  win = new BrowserWindow({ width: 1200, height: 800, autoHideMenuBar: true, title:'' })
-
+  mainWindow = new BrowserWindow({ width: 1200, height: 800, autoHideMenuBar: true, title: '' })
   let url = 'http://localhost/kis/index';
   try {
-  const kisJson = getKisJson()
-  url = kisJson.url;
+    const kisJson = getKisJson()
+    url = kisJson.url;
   } catch (e) {
-	console.error(e);
+    console.error(e);
   }
-  
+
   // 然后加载应用的 index.html。
-  win.loadURL(url);
+  mainWindow.loadURL(url);
 
   // 打开开发者工具
   //win.webContents.openDevTools()
 
   // 当 window 被关闭，这个事件会被触发。
-  win.on('closed', () => {
+  mainWindow.on('closed', () => {
     // 取消引用 window 对象，如果你的应用支持多窗口的话，
     // 通常会把多个 window 对象存放在一个数组里面，
     // 与此同时，你应该删除相应的元素。
-    win = null
+    mainWindow = null
   })
 }
 
@@ -50,17 +60,13 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // 在macOS上，当单击dock图标并且没有其他窗口打开时，
   // 通常在应用程序中重新创建一个窗口。
-  if (win === null) {
+  if (mainWindow === null) {
     createWindow()
   }
 })
 
 
 function getKisJson() {
-  const _packageJson = fs.readFileSync(__dirname +'/kis.json')
+  const _packageJson = fs.readFileSync(__dirname + '/kis.json')
   return JSON.parse(_packageJson)
 }
-
-
-// 在这个文件中，你可以续写应用剩下主进程代码。
-// 也可以拆分成几个文件，然后用 require 导入。
