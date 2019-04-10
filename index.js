@@ -6,15 +6,21 @@ const fs = require('fs');
 let mainWindow
 if (require('electron-squirrel-startup')) return;
 
-// 关键代码在这里
-const shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.focus()
-  }
-})
-if (shouldQuit) {
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
   app.quit()
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // 当运行第二个实例时,将会聚焦到mainWindow这个窗口
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+
+  // 创建 myWindow, 加载应用的其余部分, etc...
+  app.on('ready', createWindow)
 }
 
 function createWindow() {
@@ -43,11 +49,6 @@ function createWindow() {
   })
 }
 
-// Electron 会在初始化后并准备
-// 创建浏览器窗口时，调用这个函数。
-// 部分 API 在 ready 事件触发后才能使用。
-app.on('ready', createWindow)
-
 // 当全部窗口关闭时退出。
 app.on('window-all-closed', () => {
   // 在 macOS 上，除非用户用 Cmd + Q 确定地退出，
@@ -64,7 +65,6 @@ app.on('activate', () => {
     createWindow()
   }
 })
-
 
 function getKisJson() {
   const _packageJson = fs.readFileSync(__dirname + '/kis.json')
