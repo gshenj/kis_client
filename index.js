@@ -1,9 +1,13 @@
-const { app, BrowserWindow } = require('electron')
+const {
+  app,
+  dialog,
+  BrowserWindow
+} = require('electron')
 const fs = require('fs');
 
 // 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
 // 垃圾回收的时候，window对象将会自动的关闭
-let mainWindow
+let mainWindow, t;
 if (require('electron-squirrel-startup')) return;
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -25,7 +29,13 @@ if (!gotTheLock) {
 
 function createWindow() {
   // 创建浏览器窗口。
-  mainWindow = new BrowserWindow({ width: 1200, height: 800, autoHideMenuBar: true, title: '' })
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    autoHideMenuBar: true,
+    show: false,
+    title: ''
+  })
   let url = 'http://localhost/kis/index';
   try {
     const kisJson = getKisJson()
@@ -36,9 +46,10 @@ function createWindow() {
 
   // 然后加载应用的 index.html。
   mainWindow.loadURL(url);
+  t = setTimeout(check, 3000);
 
   // 打开开发者工具
-  //win.webContents.openDevTools()
+  //mainWindow.webContents.openDevTools()
 
   // 当 window 被关闭，这个事件会被触发。
   mainWindow.on('closed', () => {
@@ -46,8 +57,17 @@ function createWindow() {
     // 通常会把多个 window 对象存放在一个数组里面，
     // 与此同时，你应该删除相应的元素。
     mainWindow = null
+  });
+
+
+  mainWindow.on('ready-to-show', () => {
+    clearTimeout(t);
+    mainWindow.show();
   })
+
 }
+
+
 
 // 当全部窗口关闭时退出。
 app.on('window-all-closed', () => {
@@ -69,4 +89,13 @@ app.on('activate', () => {
 function getKisJson() {
   const _packageJson = fs.readFileSync(__dirname + '/kis.json')
   return JSON.parse(_packageJson)
+}
+
+function check() {
+  if (!mainWindow.isVisible()) {
+    //dialog.showErrorBox("错误", "网络异常");
+    //mainWindow.close();
+    mainWindow.loadFile('err.html');
+    mainWindow.show();
+  }
 }
