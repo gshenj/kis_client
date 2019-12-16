@@ -8,7 +8,7 @@ resultPromise = electronInstaller.createWindowsInstaller({
     iconUrl: path.resolve('images/kis_256px.ico'),
     loadingGif:path.join('images/loadingInstall.gif'),
     authors: 'shenjin', // 作者名称
-    exe: 'kis.exe', //在appDirectory寻找exe的名字
+    exe: 'kis.exe', //在appDirectory寻找exe的名字;
     setupExe:'kis20190410.exe',
     noMsi: true
 });
