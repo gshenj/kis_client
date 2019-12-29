@@ -1,17 +1,17 @@
 {
-  "name": "kis-1.0.0",
-  "version": "1.0.0",
-  "description": "KIS web client",
-  "main": "index.js",
+  "name": "kis",
+  "version": "1.1.0",
+  "description": "KIS client",
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "packager": "electron-packager . kis --out=../build_out --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build.js\"  --platform=win32 --arch=ia32 --icon=images/kis_256px.ico --app-version=1.0.0 --electron-version=4.1.4 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
+    "packager": "electron-packager . kis --out=../build_out --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build.js\"  --platform=win32 --arch=ia32 --icon=images/kis_256px.ico --app-version=1.0.0 --electron-version=7.1.7 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
     "exe": "node build.js"
   },
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^4.1.4",
+    "electron": "^7.1.7",
     "electron-packager": "^13.1.1",
     "electron-winstaller": "^2.7.0"
   },
