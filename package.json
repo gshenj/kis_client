@@ -6,7 +6,19 @@
   "scripts": {
     "start": "electron .",
     "packager": "electron-packager . kis --out=../build_out --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build.js\"  --platform=win32 --arch=ia32 --icon=images/kis_256px.ico --app-version=1.0.0 --electron-version=7.1.7 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
-    "exe": "node build.js"
+    "exe": "node build.js",
+    "builder": "electron-builder --ia32"
+  },
+  "build": {
+    "productName":"kis",
+    "appId": "com.ybsj",
+    "copyright":"shenjin copyright",
+    "directories": { 
+      "output": "build"
+    },
+    "win": {  
+      "icon": "images/kis_256px.ico"
+    }  
   },
   "author": "shenjin",
   "license": "ISC",
