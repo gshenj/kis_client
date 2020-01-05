@@ -1,1 +1,4 @@
-{"url":"http://148.70.243.239/kis/index"}
+{
+    "serverUrl": "http://148.70.243.239/kis/index",
+    "updateUrl": "http://localhost/public/releases/latest"
+}

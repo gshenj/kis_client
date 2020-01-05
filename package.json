@@ -1,13 +1,14 @@
 {
   "name": "kis",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "KIS client",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "packager": "electron-packager . kis --out=../build_out --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build.js\"  --platform=win32 --arch=ia32 --icon=images/kis_256px.ico --app-version=1.0.0 --electron-version=7.1.7 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
+    "packager": "electron-packager . --out=build --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build|build.js\"  --platform=win32 --arch=ia32 --icon=app.ico --electron-version=7.1.7 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
     "exe": "node build.js",
-    "builder": "electron-builder --ia32"
+    "clean": "rm -rf build/*",
+    "build": "npm run clean && npm run packager && npm run exe"
   },
   "build": {
     "productName":"kis",
@@ -16,9 +17,16 @@
     "directories": { 
       "output": "build"
     },
+    "electronVersion": "7.1.7",
+    "electronDownload": {
+      "version": "7.1.7",
+      "mirror": "http://npm.taobao.org/mirrors/electron/",
+      "platform": "win32",
+      "arch": "ia32"
+    },
     "win": {  
       "icon": "images/kis_256px.ico"
-    }  
+    } 
   },
   "author": "shenjin",
   "license": "ISC",

@@ -5,25 +5,22 @@
     <meta charset="utf-8">
     <title></title>
     <script>
-        const fs = require('fs')
-
-        function getUrl() {
-            _packageJson = fs.readFileSync(__dirname + '/kis.json');
-            return JSON.parse(_packageJson).url;
-        }
+        const fs = require('fs');
+        const path = require("path");
+        const _packageJson = fs.readFileSync(path.join(__dirname, '/kis.json'));
+        const jsonCfg = JSON.parse(_packageJson);
 
         function jump() {
             let url = document.getElementById('server_address').value
-            fs.writeFileSync(__dirname + '/kis.json', JSON.stringify({
-                url: url
-            }))
+            jsonCfg.updateUrl = url;
+            fs.writeFileSync(path.join(__dirname, '/kis.json'), JSON.stringify(jsonCfg));
             window.location.href = url;
         }
     </script>
 </head>
 <body style="text-align: center;">
     <div style="margin:20px auto; text-align:left; width:620px;">
-        <h2 style="color:red; margin-top:100px;">无法连接到服务器:<script>document.write(getUrl())</script></h2>
+        <h2 style="color:red; margin-top:100px;">无法连接到服务器:<script>document.write(jsonCfg.serverUrl)</script></h2>
         <div style="height:24px; line-height:24px;">更新服务器地址:<br /> <input
                 style="width:300px; height:24px; line-height:24px;" type="text" id="server_address" />
             <button onclick="jump()" style="padding:4px 16px">确定</button>
