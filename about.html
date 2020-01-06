@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh_CN">
+
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script>
+        const {ipcRenderer} = require('electron');
+        
+        function getUpdates() {
+            document.getElementById('msg').innerHTML = '正在检查更新...'
+            ipcRenderer.on('check-update-reply', (event, arg) => {
+                if (arg) {
+                    showMsg('发现新版本：'+arg.newVersion)
+                } else {
+                    showMsg('当前是最新版本')
+                }
+            })
+
+            ipcRenderer.send('check-update', '')
+        }
+
+        function doUpdates() {
+            ipcRenderer.on('update-downloaded', (event, arg) => {
+                showMsg('新版本下载成功，立即重启');
+                
+                document.getElementById('btn_restart').style.display = 'block'
+            });
+            ipcRenderer.on('update-error', (event, arg) => {
+                showMsg('更新异常，请重试'+ JSON.stringify(arg))
+            })
+
+            document.getElementById('btn_start_update').style.display = 'none'
+            showMsg('开始更新...')
+            ipcRenderer.send('start-update', '')
+        }
+
+        function quitAndInstall() {
+            ipcRenderer.send('quit-and-install', '')
+        }
+
+        function showMsg(msg) {
+            document.getElementById('msg').innerHTML = msg
+        }
+    </script>
+</head>
+<body style="text-align: center;">
+    <div style="margin:20px auto; text-align:left; width:620px;">
+        <div style="color:red; margin-top:100px;">KIS Client</div>
+        <div style="">当前版本：<span id="currentVersion"></span></div>
+        <div style="height:24px; line-height:24px;">
+            <div id="msg">
+            </div>
+        </div>
+
+        <button onclick="doUpdates()" id="btn_start_update" style="background-color: blue;">更新系统</button>
+        <button onclick="quitAndInstall()" id="btn_restart" style="display: none;">重新启动</button>
+    </div>
+    <script>
+        window.onload = function() {
+            //const process = require('electron').remote.process;
+        const version = require('./package.json').version;
+            document.getElementById('currentVersion').innerHTML = version;
+            getUpdates();
+        }
+    </script>
+</body>
+</html>
