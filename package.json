@@ -1,6 +1,6 @@
 {
   "name": "kis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "KIS client",
   "main": "main.js",
   "scripts": {
@@ -11,10 +11,10 @@
     "build": "npm run clean && npm run packager && npm run exe"
   },
   "build": {
-    "productName":"kis",
+    "productName": "kis",
     "appId": "com.ybsj",
-    "copyright":"shenjin copyright",
-    "directories": { 
+    "copyright": "shenjin copyright",
+    "directories": {
       "output": "build"
     },
     "electronVersion": "7.1.7",
@@ -24,14 +24,13 @@
       "platform": "win32",
       "arch": "ia32"
     },
-    "win": {  
+    "win": {
       "icon": "images/kis_256px.ico"
-    } 
+    }
   },
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^7.1.7",
     "electron-packager": "^13.1.1",
     "electron-winstaller": "^2.7.0"
   },
