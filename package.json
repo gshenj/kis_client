@@ -10,24 +10,6 @@
     "clean": "rm -rf build/*",
     "build": "npm run clean && npm run packager && npm run exe"
   },
-  "build": {
-    "productName": "kis",
-    "appId": "com.ybsj",
-    "copyright": "shenjin copyright",
-    "directories": {
-      "output": "build"
-    },
-    "electronVersion": "7.1.7",
-    "electronDownload": {
-      "version": "7.1.7",
-      "mirror": "http://npm.taobao.org/mirrors/electron/",
-      "platform": "win32",
-      "arch": "ia32"
-    },
-    "win": {
-      "icon": "images/kis_256px.ico"
-    }
-  },
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {

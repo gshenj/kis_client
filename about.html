@@ -4,32 +4,43 @@
 <head>
     <meta charset="utf-8">
     <title></title>
-    <script>
-        const {ipcRenderer} = require('electron');
-        
-        function getUpdates() {
-            document.getElementById('msg').innerHTML = '正在检查更新...'
-            ipcRenderer.on('check-update-reply', (event, arg) => {
-                if (arg) {
-                    showMsg('发现新版本：'+arg.newVersion)
-                } else {
-                    showMsg('当前是最新版本')
-                }
-            })
+    <style type="text/css">
+        body {
+            background-color: #eee;
+        }
 
+        .btn {
+            display: none;
+        }
+    </style>
+    <script>
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('check-update-reply', (event, arg) => {
+            if (arg) {
+                showMsg('<span style="color:blue">有新版本：' + arg.newVersion + ' , 是否更新？</span>')
+                showBtn('btn_start_update')
+            } else {
+                showMsg('当前已是最新版本')
+            }
+        })
+
+        ipcRenderer.on('update-error', function (event, arg) {
+            showMsg('<span style="color:red">更新异常，请重试</span>');
+            showBtn('btn_check_update')
+
+        })
+
+        ipcRenderer.on('update-downloaded', (event, arg) => {
+            showMsg('<span style="color:blue">新版本已下载成功，重启生效。</span>');
+            showBtn('btn_restart');
+        });
+
+        function checkUpdate() {
+            document.getElementById('msg').innerHTML = '正在检查更新...'
             ipcRenderer.send('check-update', '')
         }
 
-        function doUpdates() {
-            ipcRenderer.on('update-downloaded', (event, arg) => {
-                showMsg('新版本下载成功，立即重启');
-                
-                document.getElementById('btn_restart').style.display = 'block'
-            });
-            ipcRenderer.on('update-error', (event, arg) => {
-                showMsg('更新异常，请重试'+ JSON.stringify(arg))
-            })
-
+        function doUpdate() {
             document.getElementById('btn_start_update').style.display = 'none'
             showMsg('开始更新...')
             ipcRenderer.send('start-update', '')
@@ -42,27 +53,40 @@
         function showMsg(msg) {
             document.getElementById('msg').innerHTML = msg
         }
+
+        function showBtn(btnId) {
+            let btns = document.getElementsByClassName('btn')
+            for (let i in btns) {
+                if (btns[i].id == btnId) {
+                    btns[i].style.display = 'block';
+                } else {
+                    btns[i].style.display = 'none';
+                }
+            }
+        }
     </script>
 </head>
-<body style="text-align: center;">
-    <div style="margin:20px auto; text-align:left; width:620px;">
-        <div style="color:red; margin-top:100px;">KIS Client</div>
-        <div style="">当前版本：<span id="currentVersion"></span></div>
-        <div style="height:24px; line-height:24px;">
-            <div id="msg">
-            </div>
-        </div>
 
-        <button onclick="doUpdates()" id="btn_start_update" style="background-color: blue;">更新系统</button>
-        <button onclick="quitAndInstall()" id="btn_restart" style="display: none;">重新启动</button>
+<body>
+    <div style="padding:20px 20px; text-align:left;">
+        <div style="text-align: center; font-size:20px;">KIS Client</div>
+        <div style="margin:5px 0px; font-size:14px; line-height: 14px; height:20px;">当前版本：<span id="currentVersion"></span></div>
+        <div style="margin:5px 0px; font-size:14px; line-height: 14px; height:20px;" id="msg">
+        </div>
+        <div style="margin:5px 0px; height:20px; ">
+            <button onclick="checkUpdate()" id="btn_check_update" class="btn">检查更新</button>
+            <button onclick="doUpdate()" id="btn_start_update" class="btn">&emsp;确定&emsp;</button>
+            <button onclick="quitAndInstall()" id="btn_restart" class="btn">立即重启</button>
+        </div>
     </div>
     <script>
-        window.onload = function() {
+        window.onload = function () {
             //const process = require('electron').remote.process;
-        const version = require('./package.json').version;
+            const version = require('./package.json').version;
             document.getElementById('currentVersion').innerHTML = version;
-            getUpdates();
+            document.getElementById('btn_check_update').style.display = 'block';
         }
     </script>
 </body>
+
 </html>

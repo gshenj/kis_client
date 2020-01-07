@@ -3,12 +3,12 @@ const path = require("path");
 const default_url = '';
 const dlgIcon = path.join(__dirname, 'app.ico');
 
-
 // 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
 // 垃圾回收的时候，window对象将会自动的关闭
 let mainWindow, aboutWindow;
-//if (require('electron-squirrel-startup')) return;
-startupEventHandle();
+
+if (require('electron-squirrel-startup')) return;
+//startupEventHandle();
 
 const gotTheLock = app.requestSingleInstanceLock()
 
@@ -30,8 +30,6 @@ app.on('ready', createWindow);
 ipcMain.on('check-update', (event, arg) => {
     const request = net.request(getUpdateUrl() + '/RELEASES?t=' + new Date().getTime())
     request.on('response', (response) => {
-        //console.log(`STATUS: ${response.statusCode}`)
-        //console.log(`HEADERS: ${JSON.stringify(response.headers)}`)
         let txt = '';
         response.on('data', (chunk) => {
             txt += chunk.toString('utf8')
@@ -41,17 +39,22 @@ ipcMain.on('check-update', (event, arg) => {
             let vInfos = txt.split(' ')
             let appNames = vInfos[1].split('-');
             var pjson = require('./package.json');
+            let ret = null;
             if (versionCompare(appNames[1], pjson.version) > 0) {
-                let ret = { currentVersion: pjson.version, newVersion: appNames[1] }
-                event.reply('check-update-reply', ret)
-            } else {
-                event.reply('check-update-reply', null)
+                ret = { currentVersion: pjson.version, newVersion: appNames[1] }
             }
+            sendToAboutWindow('check-update-reply', ret)
         })
+
         response.on('error', () => {
-            console.log('err.')
+            sendToAboutWindow('update-error', null)
         })
     })
+
+    request.on('error', (error) => {
+        sendToAboutWindow('update-error', error)
+    })
+
     request.end()
 })
 
@@ -64,20 +67,6 @@ ipcMain.on('start-update', (event, arg) => {
     }
 
     autoUpdater.setFeedURL(updateUrl);
-    autoUpdater.on('error', function (error) {
-        event.reply('update-error', error);
-    })
-    autoUpdater.on('checking-for-update', function (e) {
-        event.reply('update-check','');
-    })
-    autoUpdater.on('update-available', function (e) {
-    })
-    autoUpdater.on('update-not-available', function (e) {
-        event.reply("update-not-available", '')
-    })
-    autoUpdater.on('update-downloaded', function (event1, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
-        event.reply('update-downloaded', '')
-    });
     autoUpdater.checkForUpdates();
 })
 
@@ -93,7 +82,6 @@ function createWindow() {
         height: 800,
         autoHideMenuBar: true,
         show: false,
-        //alwaysOnTop: true,
         title: ''
     });
 
@@ -113,13 +101,10 @@ function createWindow() {
 
     mainWindow.on('ready-to-show', () => {
         console.log('on ready-to-show');
-        //mainWindow.maximize();
         mainWindow.show();
     })
 
     contents.on('did-fail-load', () => {
-        console.log('Fail to load ' + url);
-        console.log('Load err.html');
         contents.loadFile('err.html');
     })
 
@@ -130,20 +115,34 @@ function createWindow() {
     const appIcon = new Tray(path.join(__dirname, 'app.ico'))
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: '关于',
+            label: '关于        ',
             click() {
                 showAbout();
             }
         },
         {
-            label: '退出',
+            label: '退出        ',
             click() {
                 mainWindow.close();
             }
         },])
 
     // Call this again for Linux because we modified the context menu
-    appIcon.setContextMenu(contextMenu)
+    //appIcon.setContextMenu(contextMenu);
+    appIcon.on('click', (event, bounds, position) => {
+        mainWindow.show();
+    })
+
+    appIcon.on('right-click', (event, bounds) => {
+        //mainWindow.show();
+        console.log(JSON.stringify(event))
+        console.log(JSON.stringify(bounds))
+        appIcon.popUpContextMenu(contextMenu)
+
+    })
+
+    //初始化更新器
+    initAutoUpdater();
 }
 
 // 当全部窗口关闭时退出。
@@ -183,9 +182,9 @@ function getUpdateUrl() {
 
 
 function startupEventHandle() {
-    if (require('electron-squirrel-startup')) return;
+    
     var handleStartupEvent = function () {
-        console.log(process.platform)
+        //console.log(process.platform)
         if (process.platform !== 'win32') {
             return false;
         }
@@ -193,11 +192,13 @@ function startupEventHandle() {
         switch (squirrelCommand) {
             case '--squirrel-install':
             case '--squirrel-updated':
+                showMessageBox('确定安装')
                 install();
                 return true;
             case '--squirrel-uninstall':
+                showMessageBox('确定卸载')
                 uninstall();
-                app.quit();
+                //app.quit();
                 return true;
             case '--squirrel-obsolete':
                 app.quit();
@@ -241,7 +242,7 @@ function showAbout() {
         minimizable: false,
         modal: true,
         width: 400,
-        height: 300,
+        height: 250,
         autoHideMenuBar: true,
         show: false,
         title: '关于系统',
@@ -258,6 +259,20 @@ function showAbout() {
     })
 }
 
+
+function initAutoUpdater() {
+    autoUpdater.on('error', function (error) {
+        sendToAboutWindow('update-error', error)
+    })
+
+    autoUpdater.on('update-not-available', function (e) {
+        sendToAboutWindow('update-not-available', null)
+    })
+
+    autoUpdater.on('update-downloaded', function (event1, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
+       sendToAboutWindow('update-downloaded', releaseName)
+    });
+}
 
 function versionCompare(v1, v2) {
     let arr1 = v1.split('.');
@@ -280,5 +295,13 @@ function versionCompare(v1, v2) {
             // 版本不一致，无法比较，或者相同
             return 0
         }
+    }
+}
+
+function sendToAboutWindow(chanel, arg) {
+    try {
+        aboutWindow.webContents.send(chanel, arg);
+    } catch (e) {
+        console.log(e);
     }
 }
