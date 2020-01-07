@@ -42,7 +42,7 @@
 
         function doUpdate() {
             document.getElementById('btn_start_update').style.display = 'none'
-            showMsg('开始更新...')
+            showMsg('正在下载更新...')
             ipcRenderer.send('start-update', '')
         }
 
@@ -56,10 +56,11 @@
 
         function showBtn(btnId) {
             let btns = document.getElementsByClassName('btn')
-            for (let i in btns) {
+            for (let i=0; i<btns.length; i++) {
                 if (btns[i].id == btnId) {
                     btns[i].style.display = 'block';
                 } else {
+                    //console.log(btns[i])
                     btns[i].style.display = 'none';
                 }
             }

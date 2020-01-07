@@ -233,7 +233,7 @@ function startupEventHandle() {
 
 function showAbout() {
     if (aboutWindow) {
-        console.log('About window already show.')
+        aboutWindow.show();
         return false;
     }
     aboutWindow = new BrowserWindow({
