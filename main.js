@@ -1,10 +1,6 @@
 const { app, dialog, BrowserWindow, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
 const path = require("path");
-const default_url = '';
-const dlgIcon = path.join(__dirname, 'app.ico');
-
-// 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
-// 垃圾回收的时候，window对象将会自动的关闭
+//const dlgIcon = path.join(__dirname, 'app.ico');
 let mainWindow, aboutWindow;
 
 if (require('electron-squirrel-startup')) return;
@@ -14,7 +10,6 @@ const gotTheLock = app.requestSingleInstanceLock()
 
 if (!gotTheLock) {
     app.quit()
-    // return
 }
 
 app.on('second-instance', (event, commandLine, workingDirectory) => {
@@ -60,79 +55,66 @@ ipcMain.on('check-update', (event, arg) => {
 
 
 ipcMain.on('start-update', (event, arg) => {
-    const updateUrl = getUpdateUrl();
+    const updateUrl = getUpdateUrl()
     if (!updateUrl) {
         console.log('No update url!')
-        return false;
+        return false
     }
 
-    autoUpdater.setFeedURL(updateUrl);
-    autoUpdater.checkForUpdates();
+    autoUpdater.setFeedURL(updateUrl)
+    autoUpdater.checkForUpdates()
 })
 
 ipcMain.on('quit-and-install', (event, arg) => {
-    autoUpdater.quitAndInstall();
+    autoUpdater.quitAndInstall()
 })
 
-
 function createWindow() {
-    // 创建浏览器窗口。
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         autoHideMenuBar: true,
         show: false,
         title: ''
-    });
+    })
 
-    const url = getUrl() || default_url;
-    // 然后加载应用的 index.html。
-    let contents = mainWindow.webContents;
+    const url = getUrl() || ''
+    let contents = mainWindow.webContents
     // 打开开发者工具
     //mainWindow.webContents.openDevTools()
-
     // 当 window 被关闭，这个事件会被触发。
     mainWindow.on('closed', () => {
-        // 取消引用 window 对象，如果你的应用支持多窗口的话，
-        // 通常会把多个 window 对象存放在一个数组里面，
-        // 与此同时，你应该删除相应的元素。
         mainWindow = null
     });
 
     mainWindow.on('ready-to-show', () => {
-        console.log('on ready-to-show');
-        mainWindow.show();
+        console.log('on ready-to-show')
+        mainWindow.show()
     })
 
     contents.on('did-fail-load', () => {
-        contents.loadFile('err.html');
+        contents.loadFile('err.html')
     })
 
-    contents.loadURL(url);
+    contents.loadURL(url)
 
 
-    // add tray
+    // 添加系统托盘
     const appIcon = new Tray(path.join(__dirname, 'app.ico'))
     const contextMenu = Menu.buildFromTemplate([
-        {
-            label: '关于        ',
-            click() {
-                showAbout();
-            }
-        },
-        {
-            label: '退出        ',
-            click() {
-                mainWindow.close();
-            }
-        },])
+    {
+        label: '关于        ',
+        click() { showAbout() }
+    },
+    {
+        label: '退出        ',
+        click() { mainWindow.close() }
+    }])
 
-    // Call this again for Linux because we modified the context menu
-    //appIcon.setContextMenu(contextMenu);
     appIcon.on('click', (event, bounds, position) => {
         mainWindow.show();
     })
-
+    //appIcon.setContextMenu(contextMenu);
     appIcon.on('right-click', (event, bounds) => {
         //mainWindow.show();
         console.log(JSON.stringify(event))
@@ -142,7 +124,7 @@ function createWindow() {
     })
 
     //初始化更新器
-    initAutoUpdater();
+    initAutoUpdater()
 }
 
 // 当全部窗口关闭时退出。
@@ -164,77 +146,29 @@ app.on('activate', () => {
 
 function getUrl() {
     try {
-        return require('./kis.json').serverUrl;
+        return require('./kis.json').serverUrl
     } catch (e) {
-        console.error(e);
+        console.error(e)
     }
-    return null;
+    return null
 }
 
 function getUpdateUrl() {
     try {
-        return require('./kis.json').updateUrl;
+        return require('./kis.json').updateUrl
     } catch (e) {
-        console.error(e);
+        console.error(e)
     }
-    return null;
+    return null
 }
-
-
-function startupEventHandle() {
-    
-    var handleStartupEvent = function () {
-        //console.log(process.platform)
-        if (process.platform !== 'win32') {
-            return false;
-        }
-        var squirrelCommand = process.argv[1];
-        switch (squirrelCommand) {
-            case '--squirrel-install':
-            case '--squirrel-updated':
-                showMessageBox('确定安装')
-                install();
-                return true;
-            case '--squirrel-uninstall':
-                showMessageBox('确定卸载')
-                uninstall();
-                //app.quit();
-                return true;
-            case '--squirrel-obsolete':
-                app.quit();
-                return true;
-        }
-        // 安装
-        function install() {
-            var cp = require('child_process');
-            var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-            var target = path.basename(process.execPath);
-            var child = cp.spawn(updateDotExe, ["--createShortcut", target], { detached: true });
-            child.on('close', function (code) {
-                app.quit();
-            });
-        }
-        // 卸载
-        function uninstall() {
-            var cp = require('child_process');
-            var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-            var target = path.basename(process.execPath);
-            var child = cp.spawn(updateDotExe, ["--removeShortcut", target], { detached: true });
-            child.on('close', function (code) {
-                app.quit();
-            });
-        }
-    };
-    if (handleStartupEvent()) {
-        return;
-    }
-}
-
 
 function showAbout() {
     if (aboutWindow) {
-        aboutWindow.show();
-        return false;
+        if (aboutWindow.isMinimized()) {
+            aboutWindow.restore()
+        }
+        aboutWindow.focus()
+        return false
     }
     aboutWindow = new BrowserWindow({
         parent: mainWindow,
@@ -252,13 +186,12 @@ function showAbout() {
     })
     aboutWindow.loadFile('about.html')
     aboutWindow.on('closed', () => {
-        aboutWindow = null;
+        aboutWindow = null
     })
     aboutWindow.once('ready-to-show', () => {
         aboutWindow.show()
     })
 }
-
 
 function initAutoUpdater() {
     autoUpdater.on('error', function (error) {
@@ -270,15 +203,15 @@ function initAutoUpdater() {
     })
 
     autoUpdater.on('update-downloaded', function (event1, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
-       sendToAboutWindow('update-downloaded', releaseName)
-    });
+        sendToAboutWindow('update-downloaded', releaseName)
+    })
 }
 
 function versionCompare(v1, v2) {
     let arr1 = v1.split('.');
     let arr2 = v2.split('.');
     let i = 0;
-    for (; ;) {
+    for (;;) {
         if (arr1[i] && arr2[i]) {
             arr1[i] = parseInt(arr1[i])
             arr2[i] = parseInt(arr2[i])
@@ -302,6 +235,6 @@ function sendToAboutWindow(chanel, arg) {
     try {
         aboutWindow.webContents.send(chanel, arg);
     } catch (e) {
-        console.log(e);
+        console.log(e)
     }
 }
