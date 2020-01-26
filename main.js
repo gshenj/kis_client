@@ -1,20 +1,19 @@
-const { app, dialog, BrowserWindow, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
-const path = require("path");
-const default_url = '';
-const dlgIcon = path.join(__dirname, 'app.ico');
-
+const { app, BrowserWindow, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
+const path = require("path")
+const appIcon = path.join(__dirname, 'app.ico')
 // 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
 // 垃圾回收的时候，window对象将会自动的关闭
 let mainWindow, aboutWindow;
 
-if (require('electron-squirrel-startup')) return;
-//startupEventHandle();
+if (require('electron-squirrel-startup')) {
+    return false
+}
 
+//startupEventHandle();
 const gotTheLock = app.requestSingleInstanceLock()
 
 if (!gotTheLock) {
     app.quit()
-    // return
 }
 
 app.on('second-instance', (event, commandLine, workingDirectory) => {
@@ -25,72 +24,64 @@ app.on('second-instance', (event, commandLine, workingDirectory) => {
     }
 })
 
-app.on('ready', createWindow);
+app.on('ready', createWindow)
 
 ipcMain.on('check-update', (event, arg) => {
     const request = net.request(getUpdateUrl() + '/RELEASES?t=' + new Date().getTime())
     request.on('response', (response) => {
-        let txt = '';
+        let txt = ''
         response.on('data', (chunk) => {
             txt += chunk.toString('utf8')
         })
-
         response.on('end', () => {
             let vInfos = txt.split(' ')
-            let appNames = vInfos[1].split('-');
-            var pjson = require('./package.json');
+            let appNames = vInfos[1].split('-')
+            var pjson = require('./package.json')
             let ret = null;
             if (versionCompare(appNames[1], pjson.version) > 0) {
                 ret = { currentVersion: pjson.version, newVersion: appNames[1] }
             }
             sendToAboutWindow('check-update-reply', ret)
         })
-
         response.on('error', () => {
             sendToAboutWindow('update-error', null)
         })
     })
-
     request.on('error', (error) => {
         sendToAboutWindow('update-error', error)
     })
-
     request.end()
 })
 
-
 ipcMain.on('start-update', (event, arg) => {
-    const updateUrl = getUpdateUrl();
+    const updateUrl = getUpdateUrl()
     if (!updateUrl) {
         console.log('No update url!')
-        return false;
+        return false
     }
-
-    autoUpdater.setFeedURL(updateUrl);
-    autoUpdater.checkForUpdates();
+    autoUpdater.setFeedURL(updateUrl)
+    autoUpdater.checkForUpdates()
 })
 
 ipcMain.on('quit-and-install', (event, arg) => {
-    autoUpdater.quitAndInstall();
+    autoUpdater.quitAndInstall()
 })
-
 
 function createWindow() {
     // 创建浏览器窗口。
     mainWindow = new BrowserWindow({
+        icon: appIcon,
         width: 1200,
         height: 800,
         autoHideMenuBar: true,
         show: false,
-        title: ''
-    });
+        title: '',
+        webPreferences: { devTools: true, enableRemoteModule: true }
+    })
 
-    const url = getUrl() || default_url;
+    const url = getUrl() || ''
     // 然后加载应用的 index.html。
-    let contents = mainWindow.webContents;
-    // 打开开发者工具
-    //mainWindow.webContents.openDevTools()
-
+    let contents = mainWindow.webContents
     // 当 window 被关闭，这个事件会被触发。
     mainWindow.on('closed', () => {
         // 取消引用 window 对象，如果你的应用支持多窗口的话，
@@ -100,49 +91,40 @@ function createWindow() {
     });
 
     mainWindow.on('ready-to-show', () => {
-        console.log('on ready-to-show');
-        mainWindow.show();
+        mainWindow.show()
+        mainWindow.maximize()
     })
 
     contents.on('did-fail-load', () => {
-        contents.loadFile('err.html');
+        contents.loadURL(`file://${__dirname}/err.html`)
     })
-
-    contents.loadURL(url);
-
+    contents.loadURL(url)
 
     // add tray
-    const appIcon = new Tray(path.join(__dirname, 'app.ico'))
+    const appTray = new Tray(appIcon)
     const contextMenu = Menu.buildFromTemplate([
         {
             label: '关于        ',
             click() {
-                showAbout();
+                showAbout()
             }
         },
         {
             label: '退出        ',
             click() {
-                mainWindow.close();
+                mainWindow.close()
             }
-        },])
-
+        }])
     // Call this again for Linux because we modified the context menu
     //appIcon.setContextMenu(contextMenu);
-    appIcon.on('click', (event, bounds, position) => {
+    appTray.on('click', (event, bounds, position) => {
         mainWindow.show();
     })
-
-    appIcon.on('right-click', (event, bounds) => {
-        //mainWindow.show();
-        console.log(JSON.stringify(event))
-        console.log(JSON.stringify(bounds))
-        appIcon.popUpContextMenu(contextMenu)
-
+    appTray.on('right-click', (event, bounds) => {
+        appTray.popUpContextMenu(contextMenu)
     })
-
     //初始化更新器
-    initAutoUpdater();
+    initAutoUpdater()
 }
 
 // 当全部窗口关闭时退出。
@@ -164,29 +146,27 @@ app.on('activate', () => {
 
 function getUrl() {
     try {
-        return require('./kis.json').serverUrl;
+        return require('./kis.json').serverUrl
     } catch (e) {
-        console.error(e);
+        console.error(e)
     }
-    return null;
+    return null
 }
 
 function getUpdateUrl() {
     try {
-        return require('./kis.json').updateUrl;
+        return require('./kis.json').updateUrl
     } catch (e) {
-        console.error(e);
+        console.error(e)
     }
     return null;
 }
 
-
 function startupEventHandle() {
-    
     var handleStartupEvent = function () {
         //console.log(process.platform)
         if (process.platform !== 'win32') {
-            return false;
+            return false
         }
         var squirrelCommand = process.argv[1];
         switch (squirrelCommand) {
@@ -224,73 +204,76 @@ function startupEventHandle() {
                 app.quit();
             });
         }
-    };
+    }
     if (handleStartupEvent()) {
-        return;
+        return
     }
 }
 
-
 function showAbout() {
     if (aboutWindow) {
-        aboutWindow.show();
-        return false;
+        aboutWindow.show()
+        return false
     }
     aboutWindow = new BrowserWindow({
         parent: mainWindow,
         maximizable: false,
         minimizable: false,
+        resizable: false,
         modal: true,
-        width: 400,
-        height: 250,
+        width: 450,
+        height: 350,
         autoHideMenuBar: true,
         show: false,
         title: '关于系统',
+        icon: appIcon,
         webPreferences: {
+            devTools: false,
             nodeIntegration: true
         }
     })
-    aboutWindow.loadFile('about.html')
+    const clientVersion = require('./package.json').version
+    const electronVersion = process.versions.electron
+    const chromeVersion = process.versions.chrome
+    const nodeVersion = process.versions.node
+    const data = { clientVersion, electronVersion, chromeVersion, nodeVersion }
+    const querystring = require('querystring')
+    const parameter = querystring.stringify(data)
+    aboutWindow.loadURL(`file://${__dirname}/about.html?${parameter}`)
     aboutWindow.on('closed', () => {
-        aboutWindow = null;
+        aboutWindow = null
     })
     aboutWindow.once('ready-to-show', () => {
         aboutWindow.show()
     })
 }
 
-
 function initAutoUpdater() {
     autoUpdater.on('error', function (error) {
         sendToAboutWindow('update-error', error)
     })
-
     autoUpdater.on('update-not-available', function (e) {
         sendToAboutWindow('update-not-available', null)
     })
-
     autoUpdater.on('update-downloaded', function (event1, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
-       sendToAboutWindow('update-downloaded', releaseName)
-    });
+        sendToAboutWindow('update-downloaded', releaseName)
+    })
 }
 
 function versionCompare(v1, v2) {
-    let arr1 = v1.split('.');
-    let arr2 = v2.split('.');
-    let i = 0;
-    for (; ;) {
+    let i = 0, arr1 = v1.split('.'), arr2 = v2.split('.')
+    while (1) {
         if (arr1[i] && arr2[i]) {
             arr1[i] = parseInt(arr1[i])
             arr2[i] = parseInt(arr2[i])
             if (arr1[i] == arr2[i]) {
-                i++;
-                continue;
+                i++
+                continue
             } else if (arr1[i] > arr2[i]) {
-                return 1;
+                return 1
             } else {
-                return -1;
+                return -1
             }
-
         } else {
             // 版本不一致，无法比较，或者相同
             return 0
@@ -300,8 +283,8 @@ function versionCompare(v1, v2) {
 
 function sendToAboutWindow(chanel, arg) {
     try {
-        aboutWindow.webContents.send(chanel, arg);
+        aboutWindow.webContents.send(chanel, arg)
     } catch (e) {
-        console.log(e);
+        console.log(e)
     }
 }

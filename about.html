@@ -7,33 +7,79 @@
     <style type="text/css">
         body {
             background-color: #eee;
+            font-size: 12pt;
+            text-align: center;
+        }
+
+        #mainDiv {
+            margin: 20px auto 0px;
+            width: 300px;
+            text-align: left
+        }
+
+        h3 {
+            text-align: center;
+            font-size: 16pt;
+        }
+
+        table {
+            border: none;
+        }
+
+        td {
+            padding: 5px 5px;
+            border: none;
+            text-align: left;
         }
 
         .btn {
             display: none;
+            width: 90px;
+            padding: 2px;
+        }
+
+        #btn_start_update {
+            color: #fff;
+            border-color: #4b72a4;
+            background: #698cba;
+            background: -webkit-linear-gradient(top, #698cba 0, #577eb2 100%);
+        }
+
+        #btn_check_update {
+            color: #fff;
+            border-color: #3c8b3c;
+            background: #4cae4c;
+            background: -webkit-linear-gradient(top, #4cae4c 0, #449d44 100%);
+        }
+
+        #btn_restart {
+            color: #fff;
+            border-color: #b52b27;
+            background: #d84f4b;
+            background: -webkit-linear-gradient(top, #d84f4b 0, #c9302c 100%);
         }
     </style>
     <script>
-        const { ipcRenderer } = require('electron');
+        const { ipcRenderer } = require('electron')
+        const querystring = require('querystring')
         ipcRenderer.on('check-update-reply', (event, arg) => {
             if (arg) {
-                showMsg('<span style="color:blue">有新版本：' + arg.newVersion + ' , 是否更新？</span>')
+                showMsg('<span style="color:blue">客户端有新版：' + arg.newVersion + ' , 是否更新？</span>')
                 showBtn('btn_start_update')
             } else {
-                showMsg('当前已是最新版本')
+                showMsg('当前已是最新版')
             }
         })
 
         ipcRenderer.on('update-error', function (event, arg) {
-            showMsg('<span style="color:red">更新异常，请重试</span>');
+            showMsg('<span style="color:red">更新异常，请重试！</span>')
             showBtn('btn_check_update')
-
         })
 
         ipcRenderer.on('update-downloaded', (event, arg) => {
-            showMsg('<span style="color:blue">新版本已下载成功，重启生效。</span>');
-            showBtn('btn_restart');
-        });
+            showMsg('<span style="color:blue">新版本已下载成功，重启后生效！</span>')
+            showBtn('btn_restart')
+        })
 
         function checkUpdate() {
             document.getElementById('msg').innerHTML = '正在检查更新...'
@@ -56,12 +102,11 @@
 
         function showBtn(btnId) {
             let btns = document.getElementsByClassName('btn')
-            for (let i=0; i<btns.length; i++) {
+            for (let i = 0; i < btns.length; i++) {
                 if (btns[i].id == btnId) {
-                    btns[i].style.display = 'block';
+                    btns[i].style.display = 'block'
                 } else {
-                    //console.log(btns[i])
-                    btns[i].style.display = 'none';
+                    btns[i].style.display = 'none'
                 }
             }
         }
@@ -69,22 +114,50 @@
 </head>
 
 <body>
-    <div style="padding:20px 20px; text-align:left;">
-        <div style="text-align: center; font-size:20px;">KIS Client</div>
-        <div style="margin:5px 0px; font-size:14px; line-height: 14px; height:20px;">当前版本：<span id="currentVersion"></span></div>
-        <div style="margin:5px 0px; font-size:14px; line-height: 14px; height:20px;" id="msg">
+    <div id="mainDiv">
+        <div>
+            <h3>KIS客户端</h3>
         </div>
-        <div style="margin:5px 0px; height:20px; ">
-            <button onclick="checkUpdate()" id="btn_check_update" class="btn">检查更新</button>
-            <button onclick="doUpdate()" id="btn_start_update" class="btn">&emsp;确定&emsp;</button>
-            <button onclick="quitAndInstall()" id="btn_restart" class="btn">立即重启</button>
-        </div>
+        <table>
+            <tr>
+                <td>客户端版本：
+                    <span id="clientVersion"></span></td>
+            </tr>
+            <tr>
+                <td>electron版本：
+                    <span id="electronVersion"></span></td>
+            </tr>
+            <tr>
+                <td>chrome版本：
+                    <span id="chromeVersion"></span></span>
+            </tr>
+            <tr>
+                <td>node版本：
+                    <span id="nodeVersion"></span></td>
+            </tr>
+            <tr>
+                <td>
+                    <span id="msg"></span>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-top:20px">
+                    <button onclick="checkUpdate()" id="btn_check_update" class="btn">检查更新</button>
+                    <button onclick="doUpdate()" id="btn_start_update" class="btn">&emsp;确定&emsp;</button>
+                    <button onclick="quitAndInstall()" id="btn_restart" class="btn">立即重启</button>
+                </td>
+            </tr>
+        </table>
     </div>
     <script>
         window.onload = function () {
-            //const process = require('electron').remote.process;
-            const version = require('./package.json').version;
-            document.getElementById('currentVersion').innerHTML = version;
+            const parameters = window.location.search.substr(1) // 去掉'?'
+            console.log(parameters)
+            const versions = querystring.parse(parameters)
+            document.getElementById('clientVersion').innerHTML = versions.clientVersion
+            document.getElementById('electronVersion').innerHTML = versions.electronVersion
+            document.getElementById('chromeVersion').innerHTML = versions.chromeVersion
+            document.getElementById('nodeVersion').innerHTML = versions.nodeVersion
             document.getElementById('btn_check_update').style.display = 'block';
         }
     </script>
