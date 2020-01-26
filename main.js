@@ -37,7 +37,7 @@ ipcMain.on('check-update', (event, arg) => {
             let vInfos = txt.split(' ')
             let appNames = vInfos[1].split('-')
             var pjson = require('./package.json')
-            let ret = null;
+            let ret = null
             if (versionCompare(appNames[1], pjson.version) > 0) {
                 ret = { currentVersion: pjson.version, newVersion: appNames[1] }
             }
@@ -79,9 +79,9 @@ function createWindow() {
     })
 
     const url = getUrl() || ''
-    // 然后加载应用的 index.html。
+    // 然后加载应用的 index.html
     let contents = mainWindow.webContents
-    // 当 window 被关闭，这个事件会被触发。
+    // 当 window 被关闭，这个事件会被触发
     mainWindow.on('closed', () => {
         mainWindow = null
     });
