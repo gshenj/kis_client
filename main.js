@@ -1,22 +1,29 @@
-const { app, BrowserWindow, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
-const path = require("path")
+const { app, BrowserWindow, dialog, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
+const path = require('path')
+const fs = require('fs')
+const clearFlagFileName = '.clear'
 const appIcon = path.join(__dirname, 'app.ico')
-// 保持对window对象的全局引用，如果不这么做的话，当JavaScript对象被
-// 垃圾回收的时候，window对象将会自动的关闭
-let mainWindow, aboutWindow;
+const appData = path.join(__dirname, 'data')
+const clearFlagFile = path.join(appData, clearFlagFileName)
+let mainWindow, aboutWindow
 
-if (require('electron-squirrel-startup')) {
-    return false
+if (fs.existsSync(clearFlagFile)) {
+    //清空缓存,rmdirSync开始于node 12.10
+    fs.rmdirSync(appData, { recursive: true })
+}
+
+app.setPath('userData', appData)
+
+const squirrel = require('electron-squirrel-startup')
+if (squirrel) {
+    app.quit(1)
 }
 
 //startupEventHandle();
 const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) app.quit()
 
-if (!gotTheLock) {
-    app.quit()
-}
-
-app.on('second-instance', (event, commandLine, workingDirectory) => {
+app.on('second-instance', () => {
     // 当运行第二个实例时,将会聚焦到mainWindow这个窗口
     if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore()
@@ -26,11 +33,11 @@ app.on('second-instance', (event, commandLine, workingDirectory) => {
 
 app.on('ready', createWindow)
 
-ipcMain.on('check-update', (event, arg) => {
+ipcMain.on('check-update', () => {
     const request = net.request(getUpdateUrl() + '/RELEASES?t=' + new Date().getTime())
-    request.on('response', (response) => {
+    request.on('response', response => {
         let txt = ''
-        response.on('data', (chunk) => {
+        response.on('data', chunk => {
             txt += chunk.toString('utf8')
         })
         response.on('end', () => {
@@ -39,7 +46,10 @@ ipcMain.on('check-update', (event, arg) => {
             var pjson = require('./package.json')
             let ret = null
             if (versionCompare(appNames[1], pjson.version) > 0) {
-                ret = { currentVersion: pjson.version, newVersion: appNames[1] }
+                ret = {
+                    currentVersion: pjson.version,
+                    newVersion: appNames[1],
+                }
             }
             sendToAboutWindow('check-update-reply', ret)
         })
@@ -47,13 +57,13 @@ ipcMain.on('check-update', (event, arg) => {
             sendToAboutWindow('update-error', null)
         })
     })
-    request.on('error', (error) => {
+    request.on('error', error => {
         sendToAboutWindow('update-error', error)
     })
     request.end()
 })
 
-ipcMain.on('start-update', (event, arg) => {
+ipcMain.on('start-update', () => {
     const updateUrl = getUpdateUrl()
     if (!updateUrl) {
         console.log('No update url!')
@@ -63,8 +73,47 @@ ipcMain.on('start-update', (event, arg) => {
     autoUpdater.checkForUpdates()
 })
 
-ipcMain.on('quit-and-install', (event, arg) => {
+ipcMain.on('quit-and-install', () => {
     autoUpdater.quitAndInstall()
+})
+
+ipcMain.on('clear-app-data', () => {
+    const options = {
+        type: 'question',
+        title: '确定',
+        message: '清除应用缓存数据后程序将重新启动，是否确定?',
+        buttons: ['确定', '取消'],
+    }
+    dialog.showMessageBox(options).then(result => {
+        if (result.response == 0) {
+            fs.writeFileSync(clearFlagFile)
+            app.relaunch()
+            app.quit(0)
+        }
+    })
+})
+
+ipcMain.on('open-new-window', arg => {
+    let url = arg || ''
+    let newWindow = new BrowserWindow({
+        icon: appIcon,
+        width: 1200,
+        height: 800,
+        show: false,
+        title: '',
+        webPreferences: {
+            devTools: true,
+            nodeIntegration: true,
+            enableRemoteModule: true,
+        },
+    })
+    newWindow.on('closed', () => {
+        newWindow = null
+    })
+    newWindow.on('ready-to-show', () => {
+        newWindow.show()
+    })
+    newWindow.webContents.loadURL(url)
 })
 
 function createWindow() {
@@ -75,7 +124,11 @@ function createWindow() {
         autoHideMenuBar: true,
         show: false,
         title: '',
-        webPreferences: { devTools: true, enableRemoteModule: true }
+        webPreferences: {
+            devTools: true,
+            nodeIntegration: true,
+            enableRemoteModule: true,
+        },
     })
 
     const url = getUrl() || ''
@@ -84,7 +137,8 @@ function createWindow() {
     // 当 window 被关闭，这个事件会被触发
     mainWindow.on('closed', () => {
         mainWindow = null
-    });
+        app.quit()
+    })
 
     mainWindow.on('ready-to-show', () => {
         mainWindow.show()
@@ -94,8 +148,8 @@ function createWindow() {
     contents.on('did-fail-load', () => {
         contents.loadURL(`file://${__dirname}/err.html`)
     })
-    contents.loadURL(url)
 
+    contents.loadURL(url)
     // add tray
     const appTray = new Tray(appIcon)
     const contextMenu = Menu.buildFromTemplate([
@@ -103,41 +157,38 @@ function createWindow() {
             label: '关于        ',
             click() {
                 showAbout()
-            }
+            },
         },
         {
             label: '退出        ',
             click() {
                 mainWindow.close()
-            }
-        }])
+            },
+        },
+    ])
     // Call this again for Linux because we modified the context menu
     //appIcon.setContextMenu(contextMenu);
-    appTray.on('click', (event, bounds, position) => {
-        mainWindow.show();
+    appTray.on('click', () => {
+        mainWindow.show()
     })
-    appTray.on('right-click', (event, bounds) => {
+    appTray.on('right-click', () => {
         appTray.popUpContextMenu(contextMenu)
     })
     //初始化更新器
     initAutoUpdater()
 }
 
-// 当全部窗口关闭时退出。
+// 当全部窗口关闭时退出
 app.on('window-all-closed', () => {
-    // 在 macOS 上，除非用户用 Cmd + Q 确定地退出，
-    // 否则绝大部分应用及其菜单栏会保持激活。
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+    // 在 macOS 上，除非用户用 Cmd + Q 确定地退出
+    // 否则绝大部分应用及其菜单栏会保持激活
+    if (process.platform !== 'darwin') app.quit()
 })
 
 app.on('activate', () => {
     // 在macOS上，当单击dock图标并且没有其他窗口打开时，
     // 通常在应用程序中重新创建一个窗口。
-    if (mainWindow === null) {
-        createWindow()
-    }
+    if (mainWindow === null) createWindow()
 })
 
 function getUrl() {
@@ -154,55 +205,6 @@ function getUpdateUrl() {
         return require('./kis.json').updateUrl
     } catch (e) {
         console.error(e)
-    }
-    return null;
-}
-
-function startupEventHandle() {
-    var handleStartupEvent = function () {
-        //console.log(process.platform)
-        if (process.platform !== 'win32') {
-            return false
-        }
-        var squirrelCommand = process.argv[1];
-        switch (squirrelCommand) {
-            case '--squirrel-install':
-            case '--squirrel-updated':
-                showMessageBox('确定安装')
-                install();
-                return true;
-            case '--squirrel-uninstall':
-                showMessageBox('确定卸载')
-                uninstall();
-                //app.quit();
-                return true;
-            case '--squirrel-obsolete':
-                app.quit();
-                return true;
-        }
-        // 安装
-        function install() {
-            var cp = require('child_process');
-            var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-            var target = path.basename(process.execPath);
-            var child = cp.spawn(updateDotExe, ["--createShortcut", target], { detached: true });
-            child.on('close', function (code) {
-                app.quit();
-            });
-        }
-        // 卸载
-        function uninstall() {
-            var cp = require('child_process');
-            var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-            var target = path.basename(process.execPath);
-            var child = cp.spawn(updateDotExe, ["--removeShortcut", target], { detached: true });
-            child.on('close', function (code) {
-                app.quit();
-            });
-        }
-    }
-    if (handleStartupEvent()) {
-        return
     }
     return null
 }
@@ -226,8 +228,8 @@ function showAbout() {
         icon: appIcon,
         webPreferences: {
             devTools: false,
-            nodeIntegration: true
-        }
+            nodeIntegration: true,
+        },
     })
     const clientVersion = require('./package.json').version
     const electronVersion = process.versions.electron
@@ -246,20 +248,22 @@ function showAbout() {
 }
 
 function initAutoUpdater() {
-    autoUpdater.on('error', function (error) {
+    autoUpdater.on('error', function(error) {
         sendToAboutWindow('update-error', error)
     })
-    autoUpdater.on('update-not-available', function (e) {
+    autoUpdater.on('update-not-available', function() {
         sendToAboutWindow('update-not-available', null)
     })
-    autoUpdater.on('update-downloaded', function (event1, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
+    autoUpdater.on('update-downloaded', function(event1, releaseNotes, releaseName) {
         sendToAboutWindow('update-downloaded', releaseName)
     })
 }
 
 function versionCompare(v1, v2) {
-    let i = 0, arr1 = v1.split('.'), arr2 = v2.split('.')
-    while (1) {
+    let i = 0,
+        arr1 = v1.split('.'),
+        arr2 = v2.split('.')
+    for (;;) {
         if (arr1[i] && arr2[i]) {
             arr1[i] = parseInt(arr1[i])
             arr2[i] = parseInt(arr2[i])

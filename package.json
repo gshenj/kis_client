@@ -1,22 +1,23 @@
 {
-  "name": "kis",
-  "version": "1.3.2",
-  "description": "KIS client",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "packager": "electron-packager . --out=build --ignore=\".gitignore|.jsbeautifyrc|.package-lock.json|.idea|.vscode|images|build|build.js\"  --platform=win32 --arch=ia32 --icon=app.ico --electron-version=6.1.7 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
-    "exe": "node build.js",
-    "clean": "rmdir /S /Q build",
-    "build": "npm run clean && npm run packager && npm run exe"
-  },
-  "author": "shenjin",
-  "license": "ISC",
-  "devDependencies": {
-    "electron-packager": "^13.1.1",
-    "electron-winstaller": "^2.7.0"
-  },
-  "dependencies": {
-    "electron-squirrel-startup": "^1.0.0"
-  }
+    "name": "kis",
+    "version": "1.4.0",
+    "description": "KIS client",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .", 
+        "packager": "electron-packager . --out=build --ignore=\".vscode|.prettierrc.json|data|images|build|build.js\" --platform=win32 --arch=ia32 --icon=app.ico --electron-version=8.0.0 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
+        "exe": "node build.js",
+        "clean": "if exist build (rmdir /S /Q build)",
+        "build": "npm run clean && npm run packager && npm run exe"
+    },
+    "author": "shenjin",
+    "license": "ISC",
+    "devDependencies": {
+        "electron-packager": "^13.1.1",
+        "electron-winstaller": "^2.7.0",
+        "electron": "^8.0.0"
+    },
+    "dependencies": {
+        "electron-squirrel-startup": "^1.0.0"
+    }
 }
