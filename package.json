@@ -1,23 +1,55 @@
 {
     "name": "kis",
-    "version": "1.4.0",
+    "version": "0.7.0",
     "description": "KIS client",
     "main": "main.js",
     "scripts": {
-        "start": "electron .", 
-        "packager": "electron-packager . --out=build --ignore=\".vscode|.prettierrc.json|data|images|build|build.js\" --platform=win32 --arch=ia32 --icon=app.ico --electron-version=8.0.0 --overwrite --download.mirror=https://npm.taobao.org/mirrors/electron/",
-        "exe": "node build.js",
-        "clean": "if exist build (rmdir /S /Q build)",
-        "build": "npm run clean && npm run packager && npm run exe"
+        "start": "electron .",
+        "clean": "if exist dist (rmdir /S /Q dist)",
+        "dist": "electron-builder --win --ia32"
+    },
+    "build": {
+        "appId": "kis",
+        "asar": true,
+        "electronVersion": "8.0.0",
+        "electronDownload": {
+            "mirror": "http://npm.taobao.org/mirrors/electron/"
+        },
+        "files": [
+            "!**/data",
+            "!**/images",
+            "!**/.prettierrc.json",
+            "!**/README.md",
+            "!**/build.js",
+            "!**/.vscode",
+            "!**/dev-app-update.yml"
+        ],
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "icon": "app.ico",
+            "artifactName": "${productName}-${version}.${ext}"
+        },
+        "publish": {
+            "provider": "generic",
+            "url": "http://148.70.243.239/public/releases/latest"
+        },
+        "nsis": {
+            "oneClick": true,
+            "allowToChangeInstallationDirectory": false,
+            "deleteAppDataOnUninstall": true
+        }
     },
     "author": "shenjin",
     "license": "ISC",
     "devDependencies": {
+        "electron": "^8.0.0",
         "electron-packager": "^13.1.1",
-        "electron-winstaller": "^2.7.0",
-        "electron": "^8.0.0"
+        "electron-winstaller": "^2.7.0"
     },
     "dependencies": {
-        "electron-squirrel-startup": "^1.0.0"
+        "electron-updater": "^4.2.0",
+        "electron-log": "^4.0.6"
     }
 }

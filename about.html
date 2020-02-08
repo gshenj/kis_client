@@ -61,8 +61,9 @@
         }
 
         #btn_clear_app_data {
+            margin-left:100px;
+            padding:2px;
             width: 90px;
-            padding: 2px;
             color: #fff;
             border-color: #3c8b3c;
             background: #4cae4c;
@@ -72,53 +73,75 @@
     <script>
         const { ipcRenderer } = require('electron')
         const querystring = require('querystring')
-        ipcRenderer.on('check-update-reply', (event, arg) => {
-            if (arg) {
-                showMsg('<span style="color:blue">客户端有新版：' + arg.newVersion + ' , 是否更新？</span>')
-                showBtn('btn_start_update')
-            } else {
-                showMsg('当前已是最新版')
-            }
+        ipcRenderer.on('checking-for-update', (event, info) => {
+            showMsg('正在检查更新...')
+        })
+            
+        ipcRenderer.on('update-available', (event, info) => {
+            showMsg('<span style="color:blue">发现新版：' + info.version + ' , 是否更新？</span>')
+            showBtn('btn_start_update')
         })
 
-        ipcRenderer.on('update-error', function (event, arg) {
-            showMsg('<span style="color:red">更新异常，请重试！</span>')
+        ipcRenderer.on('update-not-available', (event, info) => {
+            showMsg('当前已是最新版')
+        })
+        // 下载进度
+        ipcRenderer.on('download-progress', (event, percent) => {
+            setProcessBar(percent)
+        })
+        // 下载更新失败
+        ipcRenderer.on('update-error', (event, err) => {
+            showMsg('<span style="color:red">更新异常('+err.msg + ')请重试！</span>')
             showBtn('btn_check_update')
         })
 
         ipcRenderer.on('update-downloaded', (event, arg) => {
-            showMsg('<span style="color:blue">新版本已下载成功，重启后生效！</span>')
+            document.querySelector('#msgProcess').innerHTML = '新版下载完成'
+            setProcessBar(100)
             showBtn('btn_restart')
         })
 
+        function setProcessBar(percent) {
+            const processPercent = parseInt(percent)* 2
+            document.querySelector('#process').style.width = processPercent + 'px'
+            document.querySelector('#process').innerHTML = (processPercent/2) + '%'
+        }
+
         function checkUpdate() {
-            document.getElementById('msg').innerHTML = '正在检查更新...'
+            //检查更新
             ipcRenderer.send('check-update', '')
         }
 
         function doUpdate() {
-            document.getElementById('btn_start_update').style.display = 'none'
-            showMsg('正在下载更新...')
-            ipcRenderer.send('start-update', '')
+            //开始更新
+            document.querySelector('#btn_start_update').onclick = function(){}  
+            showProcessBar()
+            ipcRenderer.send('update-start-download', '')
         }
 
         function quitAndInstall() {
+            //安装更新
             ipcRenderer.send('quit-and-install', '')
         }
 
         function showMsg(msg) {
-            document.getElementById('msg').innerHTML = msg
+            document.querySelector('#msg').innerHTML = msg
         }
 
         function showBtn(btnId) {
-            let btns = document.getElementsByClassName('btn')
+            var btns = document.querySelectorAll('.btn')
             for (let i = 0; i < btns.length; i++) {
                 if (btns[i].id == btnId) {
-                    btns[i].style.display = 'block'
+                    btns[i].style.display = 'inline'
                 } else {
                     btns[i].style.display = 'none'
                 }
             }
+        }
+
+        function showProcessBar(){
+            var html = '<div id="msgProcess" style="float:left; height:24px; color:blue;">正在下载更新</div><div id="processBar" style="float:left; height:24px; margin-left:10px;text-align: left; width:200px; border:1px solid #333"><div id="process" style="float:left; text-align:center; background-color: #3c8b3c; height:24px; width:0px; border:none;"></div></div>'
+            document.querySelector('#msg').innerHTML = html
         }
 
         function clearAppData() {
@@ -134,34 +157,32 @@
         </div>
         <table>
             <tr>
-                <td>客户端版本：
+                <td>当前版本：
                     <span id="clientVersion"></span></td>
             </tr>
             <tr>
-                <td>electron版本：
+                <td>Electron版本：
                     <span id="electronVersion"></span></td>
             </tr>
             <tr>
-                <td>chrome版本：
+                <td>Chrome版本：
                     <span id="chromeVersion"></span></span>
             </tr>
             <tr>
-                <td>node版本：
+                <td>NodeJS版本：
                     <span id="nodeVersion"></span></td>
             </tr>
             <tr>
                 <td>
-                    <span id="msg"></span>
+                    <div id="msg" style="height:24px; line-height: 24px;"></div>
                 </td>
             </tr>
             <tr>
-                <td style="padding-top:20px">
+                <td>
                     <button onclick="checkUpdate()" id="btn_check_update" class="btn">检查更新</button>
                     <button onclick="doUpdate()" id="btn_start_update" class="btn">&emsp;确定&emsp;</button>
-                    <button onclick="quitAndInstall()" id="btn_restart" class="btn">立即重启</button>
-                </td>
-                <td style="padding-top:20px">
-                    <button onclick="clearAppData()" id="btn_clear_app_data">清空缓存</button>
+                    <button onclick="quitAndInstall()" id="btn_restart" class="btn">安装更新</button>
+                    <!-- <button onclick="clearAppData()" id="btn_clear_app_data">清空缓存</button> -->
                 </td>
             </tr>
         </table>
@@ -175,7 +196,7 @@
             document.getElementById('electronVersion').innerHTML = versions.electronVersion
             document.getElementById('chromeVersion').innerHTML = versions.chromeVersion
             document.getElementById('nodeVersion').innerHTML = versions.nodeVersion
-            document.getElementById('btn_check_update').style.display = 'block';
+            document.getElementById('btn_check_update').style.display = 'inline';
         }
     </script>
 </body>

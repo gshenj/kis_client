@@ -1,9 +1,14 @@
-const { app, BrowserWindow, dialog, autoUpdater, Tray, Menu, ipcMain, net } = require('electron')
+const { app, BrowserWindow, dialog, Tray, Menu, ipcMain } = require('electron')
+const { autoUpdater } = require('electron-updater')
+autoUpdater.logger = require('electron-log')
+autoUpdater.logger.transports.file.level = 'debug'
 const path = require('path')
 const fs = require('fs')
 const clearFlagFileName = '.clear'
 const appIcon = path.join(__dirname, 'app.ico')
-const appData = path.join(__dirname, 'data')
+//const appData = path.join(path.dirname(process.execPath), 'data')
+//系统默认就是这个位置
+const appData = path.join(app.getPath('userData', app.name))
 const clearFlagFile = path.join(appData, clearFlagFileName)
 let mainWindow, aboutWindow
 
@@ -14,12 +19,6 @@ if (fs.existsSync(clearFlagFile)) {
 
 app.setPath('userData', appData)
 
-const squirrel = require('electron-squirrel-startup')
-if (squirrel) {
-    app.quit(1)
-}
-
-//startupEventHandle();
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) app.quit()
 
@@ -34,43 +33,11 @@ app.on('second-instance', () => {
 app.on('ready', createWindow)
 
 ipcMain.on('check-update', () => {
-    const request = net.request(getUpdateUrl() + '/RELEASES?t=' + new Date().getTime())
-    request.on('response', response => {
-        let txt = ''
-        response.on('data', chunk => {
-            txt += chunk.toString('utf8')
-        })
-        response.on('end', () => {
-            let vInfos = txt.split(' ')
-            let appNames = vInfos[1].split('-')
-            var pjson = require('./package.json')
-            let ret = null
-            if (versionCompare(appNames[1], pjson.version) > 0) {
-                ret = {
-                    currentVersion: pjson.version,
-                    newVersion: appNames[1],
-                }
-            }
-            sendToAboutWindow('check-update-reply', ret)
-        })
-        response.on('error', () => {
-            sendToAboutWindow('update-error', null)
-        })
-    })
-    request.on('error', error => {
-        sendToAboutWindow('update-error', error)
-    })
-    request.end()
+    autoUpdater.checkForUpdates()
 })
 
-ipcMain.on('start-update', () => {
-    const updateUrl = getUpdateUrl()
-    if (!updateUrl) {
-        console.log('No update url!')
-        return false
-    }
-    autoUpdater.setFeedURL(updateUrl)
-    autoUpdater.checkForUpdates()
+ipcMain.on('update-start-download', () => {
+    autoUpdater.downloadUpdate()
 })
 
 ipcMain.on('quit-and-install', () => {
@@ -78,43 +45,44 @@ ipcMain.on('quit-and-install', () => {
 })
 
 ipcMain.on('clear-app-data', () => {
-    const options = {
-        type: 'question',
-        title: '确定',
-        message: '清除应用缓存数据后程序将重新启动，是否确定?',
-        buttons: ['确定', '取消'],
-    }
-    dialog.showMessageBox(options).then(result => {
-        if (result.response == 0) {
-            fs.writeFileSync(clearFlagFile)
-            app.relaunch()
-            app.quit(0)
-        }
-    })
+    clearAppData()
 })
 
-ipcMain.on('open-new-window', arg => {
-    let url = arg || ''
-    let newWindow = new BrowserWindow({
-        icon: appIcon,
-        width: 1200,
-        height: 800,
-        show: false,
-        title: '',
-        webPreferences: {
-            devTools: true,
-            nodeIntegration: true,
-            enableRemoteModule: true,
-        },
+function initAutoUpdater() {
+    autoUpdater.autoDownload = false // 关闭自动更新
+    autoUpdater.autoInstallOnAppQuit = false // APP退出的时候自动安装
+
+    autoUpdater.on('checking-for-update', () => {
+        console.debug('checking update...')
+        sendToAboutWindow('checking-for-update')
     })
-    newWindow.on('closed', () => {
-        newWindow = null
+    autoUpdater.on('update-available', info => {
+        // 可以更新版本
+        console.debug(info)
+        sendToAboutWindow('update-available', info)
     })
-    newWindow.on('ready-to-show', () => {
-        newWindow.show()
+    autoUpdater.on('update-not-available', info => {
+        // 不能够更新
+        console.debug(info)
+        sendToAboutWindow('update-not-available', null)
     })
-    newWindow.webContents.loadURL(url)
-})
+    autoUpdater.on('error', err => {
+        // 更新错误
+        console.error(err)
+        sendToAboutWindow('update-error', err)
+    })
+    autoUpdater.on('download-progress', progressObj => {
+        // 正在下载的下载进度
+        //console.log(progressObj)
+        //console.log('Download progress ' + progressObj.percent)
+        sendToAboutWindow('download-progress', progressObj.percent)
+    })
+    autoUpdater.on('update-downloaded', info => {
+        // 下载完成
+        console.debug(info)
+        sendToAboutWindow('update-downloaded')
+    })
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -137,6 +105,9 @@ function createWindow() {
     // 当 window 被关闭，这个事件会被触发
     mainWindow.on('closed', () => {
         mainWindow = null
+        if (aboutWindow) {
+            aboutWindow.close()
+        }
         app.quit()
     })
 
@@ -154,13 +125,19 @@ function createWindow() {
     const appTray = new Tray(appIcon)
     const contextMenu = Menu.buildFromTemplate([
         {
-            label: '关于        ',
+            label: '清空应用缓存',
+            click() {
+                clearAppData()
+            },
+        },
+        {
+            label: '关于',
             click() {
                 showAbout()
             },
         },
         {
-            label: '退出        ',
+            label: '退出',
             click() {
                 mainWindow.close()
             },
@@ -200,15 +177,6 @@ function getUrl() {
     return null
 }
 
-function getUpdateUrl() {
-    try {
-        return require('./kis.json').updateUrl
-    } catch (e) {
-        console.error(e)
-    }
-    return null
-}
-
 function showAbout() {
     if (aboutWindow) {
         aboutWindow.show()
@@ -227,7 +195,7 @@ function showAbout() {
         title: '关于系统',
         icon: appIcon,
         webPreferences: {
-            devTools: false,
+            //devTools: false,
             nodeIntegration: true,
         },
     })
@@ -239,6 +207,12 @@ function showAbout() {
     const querystring = require('querystring')
     const parameter = querystring.stringify(data)
     aboutWindow.loadURL(`file://${__dirname}/about.html?${parameter}`)
+
+    aboutWindow.on('close', e => {
+        e.preventDefault() //阻止默认行为，一定要有
+        aboutWindow.hide()
+    })
+
     aboutWindow.on('closed', () => {
         aboutWindow = null
     })
@@ -247,45 +221,26 @@ function showAbout() {
     })
 }
 
-function initAutoUpdater() {
-    autoUpdater.on('error', function(error) {
-        sendToAboutWindow('update-error', error)
-    })
-    autoUpdater.on('update-not-available', function() {
-        sendToAboutWindow('update-not-available', null)
-    })
-    autoUpdater.on('update-downloaded', function(event1, releaseNotes, releaseName) {
-        sendToAboutWindow('update-downloaded', releaseName)
-    })
-}
-
-function versionCompare(v1, v2) {
-    let i = 0,
-        arr1 = v1.split('.'),
-        arr2 = v2.split('.')
-    for (;;) {
-        if (arr1[i] && arr2[i]) {
-            arr1[i] = parseInt(arr1[i])
-            arr2[i] = parseInt(arr2[i])
-            if (arr1[i] == arr2[i]) {
-                i++
-                continue
-            } else if (arr1[i] > arr2[i]) {
-                return 1
-            } else {
-                return -1
-            }
-        } else {
-            // 版本不一致，无法比较，或者相同
-            return 0
-        }
-    }
-}
-
 function sendToAboutWindow(chanel, arg) {
     try {
         aboutWindow.webContents.send(chanel, arg)
     } catch (e) {
-        console.log(e)
+        ///console.log(e)
     }
+}
+
+function clearAppData() {
+    const options = {
+        type: 'question',
+        title: '确定',
+        message: '清除应用缓存数据后程序将重新启动，是否确定?',
+        buttons: ['确定', '取消'],
+    }
+    dialog.showMessageBox(options).then(result => {
+        if (result.response == 0) {
+            fs.writeFileSync(clearFlagFile)
+            app.relaunch()
+            app.quit(0)
+        }
+    })
 }
