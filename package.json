@@ -1,6 +1,6 @@
 {
     "name": "kis",
-    "version": "0.7.0",
+    "version": "0.8.1",
     "description": "KIS client",
     "main": "main.js",
     "scripts": {
@@ -33,7 +33,7 @@
         },
         "publish": {
             "provider": "generic",
-            "url": "http://148.70.243.239/public/releases/latest"
+            "url": "http://148.70.243.239/releases/latest"
         },
         "nsis": {
             "oneClick": true,
