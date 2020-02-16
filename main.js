@@ -99,7 +99,7 @@ function createWindow() {
         },
     })
 
-    const url = getUrl() || ''
+    const url = getUrl() || 'http://148.70.243.239/kis/index'
     // 然后加载应用的 index.html
     let contents = mainWindow.webContents
     // 当 window 被关闭，这个事件会被触发
@@ -168,7 +168,16 @@ app.on('activate', () => {
     if (mainWindow === null) createWindow()
 })
 
+
+/* 
+* kis.json content like this: 
+    {
+        "serverUrl": "http://148.70.243.239/kis/index"
+    } 
+*
+*/
 function getUrl() {
+    if (! fs.existsSync('./kis.json')) return null
     try {
         return require('./kis.json').serverUrl
     } catch (e) {
