@@ -100,6 +100,7 @@ function createWindow() {
     })
 
     const url = getUrl() || 'http://148.70.243.239/kis/index'
+    //console.log(url)
     // 然后加载应用的 index.html
     let contents = mainWindow.webContents
     // 当 window 被关闭，这个事件会被触发

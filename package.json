@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "clean": "if exist dist (rmdir /S /Q dist)",
-    "dist": "electron-builder --win --ia32"
+    "dist": "yarn clean && electron-builder --win --ia32"
   },
   "build": {
     "appId": "kis",
@@ -19,6 +19,8 @@
       "!**/data",
       "!**/images",
       "!**/.prettierrc.json",
+      "!**/.gitignore",
+      "!**/yarn.lock",
       "!**/README.md",
       "!**/build.js",
       "!**/.vscode",
@@ -28,7 +30,7 @@
       "output": "dist"
     },
     "win": {
-      "icon": "app.png",
+      "icon": "images/app.png",
       "artifactName": "${productName}-${version}.${ext}"
     },
     "publish": {
@@ -44,7 +46,7 @@
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^8.0.0",
+    "electron": "8.0.0",
     "electron-packager": "^13.1.1",
     "electron-winstaller": "^2.7.0"
   },
