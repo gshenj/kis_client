@@ -46,7 +46,7 @@
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {
-    "electron": "8.0.0",
+    "electron": "9.1.0",
     "electron-packager": "^13.1.1",
     "electron-winstaller": "^2.7.0"
   },
