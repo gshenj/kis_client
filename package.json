@@ -11,7 +11,7 @@
   "build": {
     "appId": "kis",
     "asar": true,
-    "electronVersion": "8.0.0",
+    "electronVersion": "10.1.0",
     "electronDownload": {
       "mirror": "http://npm.taobao.org/mirrors/electron/"
     },
@@ -46,7 +46,7 @@
   "author": "shenjin",
   "license": "ISC",
   "devDependencies": {
-    "electron": "8.0.0",
+    "electron": "10.1.0",
     "electron-packager": "^13.1.1",
     "electron-winstaller": "^2.7.0"
   },
